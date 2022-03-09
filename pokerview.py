@@ -89,9 +89,10 @@ class PlayerProperties:
         self.status = status
 
     def setActive(self):
+        self.status = True
 
 
-class PlayerPropertiesView:
+class PlayerPropertiesView: #--> view won't need player
     def __init__(self, player):
         self.mainWidget = QWidget()
         self.layout = QVBoxLayout()
