@@ -15,8 +15,11 @@ import cardlib
 
 ################################################################
 
+#window
 class Window(QMainWindow):
-    """ Sets hole window"""
+    """
+    Class Window: Sets window
+    """
 
     def __init__(self):
         super().__init__()
@@ -32,141 +35,12 @@ class Window(QMainWindow):
     def addView(self, widget, column, row):
         self.layout.addWidget(widget, column, row)
 
-class ButtonsView:
-
-    def __init__(self, game):
-        self.mainWidget = QWidget()
-        self.layout = QHBoxLayout()
-        self.game = game
-                
-        self.raiseButton = QPushButton("RAISE")
-        self.callButton = QPushButton("CALL")
-        self.checkButton = QPushButton("CHECK")
-        self.foldButton = QPushButton("FOLD")
-
-        #self.raiseButton.setAutoFillBackground(True)
-        #self.raiseButton.setStyleSheet("background-color : rgb(101, 252, 129); border = none")
-
-        self.layout.addWidget(self.raiseButton)
-        self.layout.addWidget(self.callButton)
-        self.layout.addWidget(self.checkButton)
-        self.layout.addWidget(self.foldButton)
-
-        self.mainWidget.setLayout(self.layout)
-
-    def setActive(self, button):
-        QPushButton.setDisabled(button, False)
-
-    def setDisabled(self, button):
-        QPushButton.setDisabled(button, True)
-
-class Pot:
-    def __init__(self, money):
-        self.money = money
-
-class PotView:
-    def __init__(self, pot):
-        self.mainWidget = QWidget()
-        self.layout = QHBoxLayout()
-
-        self.pot = pot
-        self.money = QLabel(f"Pot: {pot.money}€")
-
-        self.layout.addWidget(self.money)
-
-        self.mainWidget.setLayout(self.layout)
-
-    def refreshPot(self):
-        self.money.setText(f"Pot: {self.pot.money}")
-
-class PlayerProperties:
-    def __init__(self, name, money, bet, hand, status):# status --> aktive or not
-        self.name = name
-        self.money = money
-        self.bet = bet
-        self.handcards = hand.cards     # list of cards
-        self.card_item_list = CardItemList(self.handcards) #list of game items containing pics of cards
-        self.status = status
-
-    def setActive(self):
-        self.status = True
-
-
-class PlayerPropertiesView: #--> view won't need player
-    def __init__(self, player):
-        self.mainWidget = QWidget()
-        self.layout = QVBoxLayout()
-        self.player = player
-
-        self.name = QLabel()
-        self.money = QLabel()
-        self.bet = QLabel()
-        self.activeText = QLabel("active")
-        self.activeText.setStyleSheet("background-color : red;")
-
-        self.refreshView()
-        self.refreshStatus()
-
-        self.layout.addWidget(self.name)
-        self.layout.addWidget(self.money)
-        self.layout.addWidget(self.bet)
-        self.layout.addWidget(self.activeText)
-
-        self.mainWidget.setLayout(self.layout)
-
-    def refreshView(self):
-        self.name.setText(f"{self.player.name}")
-        self.money.setText(f"Money: {self.player.money}")
-        self.bet.setText(f"Bet: {self.player.bet}")
-
-    def refreshStatus(self):
-        if self.player.status:
-            self.activeText.show()
-        else:
-            self.activeText.hide()
-
-class CardItem(QGraphicsSvgItem):
-    """ A simple overloaded QGraphicsSvgItem that also stores the card position """
-    def __init__(self, card, position, status_open): #status--> open:TRUE or flipped:FAlSE
-        super().__init__()
-        self.card = card
-        self.setSharedRenderer(CardRenderer(card, status_open).renderer)
-        self.position = position
-        self.status_open = status_open
-
-    def changeStatus(self, status_open):
-        self.status_open = status_open
-        self.setSharedRenderer(CardRenderer(self.card, self.status_open).renderer)
-
-class CardItemList():
-    def __init__(self, cards):
-        self.cards = []
-        self.ini(cards)
-
-
-    def ini(self, cards):
-        for indices, card in enumerate(cards):
-            carditem = CardItem(card, indices,False)
-            self.cards.append(carditem)
-
-class CardView:
-    def __init__(self, cards):
-        self.scene = QGraphicsScene()
-        self.view = QGraphicsView(self.scene)
-        self.view.setGeometry(0, 0, 100, 110)
-        self.cards = cards.cards
-
-        for card in self.cards:
-            card.setPos(card.position * 125, 0)
-            self.scene.addItem(card)
-
-    def addCardItem(self, card):
-        self.cards.append(card)
-        for card in self.cards:
-            card.setPos(card.position * 125, 0)
-            self.scene.addItem(card)
-
+#cards
 class CardRenderer:
+    """
+    Class CardRenderer: Gets Image depending on card value and suit and depending on the state if the card is flipped or open.
+    """
+
     def __init__(self, card, status):
 
         self.dicValue = {11: "J",
@@ -192,14 +66,152 @@ class CardRenderer:
     def open(self):
         self.renderer = QSvgRenderer(f'cards/{str(self.mappedvalue) + self.mappedsuit}.svg')
 
+class CardItem(QGraphicsSvgItem):
+    """
+    Class CardItem: A simple overloaded QGraphicsSvgItem that also stores the card position and the state_open
+    """
+    def __init__(self, card, position, state_open): #state--> open:TRUE or flipped:FAlSE
+        super().__init__()
+        self.card = card
+        self.setSharedRenderer(CardRenderer(card, state_open).renderer)
+        self.position = position
+        self.status_open = state_open
+
+    def changeState(self, status_open):
+        self.status_open = status_open
+        self.setSharedRenderer(CardRenderer(self.card, self.status_open).renderer)
+
+class CardItemList:
+    """
+    Class CardItemList: List of card items.
+    """
+    def __init__(self, cards):
+        self.cards = []
+        self.ini(cards)
+
+    def ini(self, cards):
+        for indices, card in enumerate(cards):
+            carditem = CardItem(card, indices,False)
+            self.cards.append(carditem)
+
+    def openCard(self, position):  # position of card in ItemList
+        self.cards[position].changeState(True)
+
+    def coverCard(self, position): # position of card in ItemList
+        self.cards[position].changeState(False)
+
+class CardView:
+    """
+    Class CardView: Shows Cards.
+    """
+    def __init__(self, cards):
+        self.scene = QGraphicsScene()
+        self.view = QGraphicsView(self.scene)
+        self.view.setGeometry(0, 0, 100, 110)
+        self.cards = cards.cards
+
+        for card in self.cards:
+            card.setPos(card.position * 125, 0)
+            self.scene.addItem(card)
+
+    def addCardItem(self, card):
+        self.cards.append(card)
+        for card in self.cards:
+            card.setPos(card.position * 125, 0)
+            self.scene.addItem(card)
+
+"""
 def openCard(cardItemList, position): #position of card in ItemList
-    cardItemList.cards[position].changeStatus(True)
+    cardItemList.cards[position].changeState(True)
 
 def coverCard(cardItemList, position):
-    cardItemList.cards[position].changeStatus(False)
+    cardItemList.cards[position].changeState(False)
+"""
 
+#buttons
+class ButtonsView:
+
+    def __init__(self, game): #glaube nicht dass das game hier übergeben werden sollte
+        self.mainWidget = QWidget()
+        self.layout = QHBoxLayout()
+        self.game = game
+                
+        self.raiseButton = QPushButton("RAISE")
+        self.callButton = QPushButton("CALL")
+        self.checkButton = QPushButton("CHECK")
+        self.foldButton = QPushButton("FOLD")
+
+        #self.raiseButton.setAutoFillBackground(True)
+        #self.raiseButton.setStyleSheet("background-color : rgb(101, 252, 129); border = none")
+
+        self.layout.addWidget(self.raiseButton)
+        self.layout.addWidget(self.callButton)
+        self.layout.addWidget(self.checkButton)
+        self.layout.addWidget(self.foldButton)
+
+        self.mainWidget.setLayout(self.layout)
+
+    def setActive(self, button):
+        QPushButton.setDisabled(button, False)
+
+    def setDisabled(self, button):
+        QPushButton.setDisabled(button, True)
+
+#pot
+class PotView:
+    def __init__(self, pot):
+        self.mainWidget = QWidget()
+        self.layout = QHBoxLayout()
+
+        self.pot = pot
+        self.money = QLabel(f"Pot: {pot.money}€")
+
+        self.layout.addWidget(self.money)
+
+        self.mainWidget.setLayout(self.layout)
+
+    def refreshPot(self):
+        self.money.setText(f"Pot: {self.pot.money}")
+
+
+
+class PlayerView: #--> view won't need player
+    def __init__(self):
+        self.mainWidget = QWidget()
+        self.layout = QVBoxLayout()
+
+        self.name_label = QLabel()
+        self.money_label = QLabel()
+        self.bet_label = QLabel()
+        self.blind_label = QLabel()
+        self.activeText = QLabel("active")
+        self.activeText.setStyleSheet("background-color : red;")
+
+        #self.refreshView()
+        #self.refreshStatus()
+
+        self.layout.addWidget(self.name_label)
+        self.layout.addWidget(self.money_label)
+        self.layout.addWidget(self.bet_label)
+        self.layout.addWidget(self.blind_label)
+        self.layout.addWidget(self.activeText)
+
+        self.mainWidget.setLayout(self.layout)
+
+    """
+    def refreshView(self):
+        self.name.setText(f"{self.player.name}")
+        self.money.setText(f"Money: {self.player.money}")
+        self.bet.setText(f"Bet: {self.player.bet}")
+
+    def refreshStatus(self):
+        if self.player.status:
+            self.activeText.show()
+        else:
+            self.activeText.hide()
+    """
 #####################################################
-
+"""
 qt_app = QApplication(sys.argv)
 window = Window()
 
@@ -255,3 +267,4 @@ window.addView(potView.mainWidget, 1, 1)
 
 window.show()
 qt_app.exec_()
+"""
