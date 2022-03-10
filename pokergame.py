@@ -15,12 +15,11 @@ import sys
 
 def main():
 
-    game = Game()
     qt_app = QApplication(sys.argv)
-    window = QWidget()
-    window.setLayout(PokerView(game, window))
-    window.show()
-
+    game = Game()
+    view = PokerView(game)
+    view.showView()
     qt_app.exec_()
+
 if __name__ == "__main__":
     main()

@@ -12,6 +12,7 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 import sys
 import cardlib
+from pokermodel import *
 
 ################################################################
 
@@ -20,7 +21,6 @@ class Window(QMainWindow):
     """
     Class Window: Sets window
     """
-
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Texas Holdem")
@@ -41,7 +41,7 @@ class CardRenderer:
     Class CardRenderer: Gets Image depending on card value and suit and depending on the state if the card is flipped or open.
     """
 
-    def __init__(self, card, status):
+    def __init__(self, card: PlayingCard, status):
 
         self.dicValue = {11: "J",
                         12: "Q",
@@ -50,10 +50,10 @@ class CardRenderer:
 
         self.mappedsuit = card.suit.name[0]
 
-        if card.value > 10:
-            self.mappedvalue = self.dicValue[card.value]
+        if card.get_value() > 10:
+            self.mappedvalue = self.dicValue[card.get_value()]
         else:
-            self.mappedvalue = card.value
+            self.mappedvalue = card.get_value()
 
         if status:
             self.open()
@@ -86,55 +86,60 @@ class CardItemList:
     Class CardItemList: List of card items.
     """
     def __init__(self, cards):
-        self.cards = []
+        self.list_cardItems = []
         self.ini(cards)
 
     def ini(self, cards):
         for indices, card in enumerate(cards):
-            carditem = CardItem(card, indices,False)
-            self.cards.append(carditem)
+            carditem = CardItem(card, indices, False)
+            self.list_cardItems.append(carditem)
 
     def openCard(self, position):  # position of card in ItemList
-        self.cards[position].changeState(True)
+        self.list_cardItems[position].changeState(True)
 
     def coverCard(self, position): # position of card in ItemList
-        self.cards[position].changeState(False)
+        self.list_cardItems[position].changeState(False)
 
 class CardView:
     """
     Class CardView: Shows Cards.
     """
-    def __init__(self, cards):
+    def __init__(self, cards): # cards: list of PlayingCards
+        self.cardItemList = CardItemList(cards)
+        self.list_cardItems = self.cardItemList.list_cardItems
         self.scene = QGraphicsScene()
+
+        self.refreshView()
+
         self.view = QGraphicsView(self.scene)
         self.view.setGeometry(0, 0, 100, 110)
-        self.cards = cards.cards
 
-        for card in self.cards:
+    def open_Player_Cards(self):
+        for i in range(2):
+            self.cardItemList.openCard(i)
+
+    def cover_Player_Cards(self):
+        for i in range(2):
+            self.cardItemList.coverCard(i)
+
+    def open_Table_Cards(self):
+        i = 0
+        self.cardItemList.openCard(i)
+        i = i+1
+
+    def refreshView(self):
+
+        self.scene.clear()
+        for card in self.list_cardItems:
             card.setPos(card.position * 125, 0)
             self.scene.addItem(card)
-
-    def addCardItem(self, card):
-        self.cards.append(card)
-        for card in self.cards:
-            card.setPos(card.position * 125, 0)
-            self.scene.addItem(card)
-
-"""
-def openCard(cardItemList, position): #position of card in ItemList
-    cardItemList.cards[position].changeState(True)
-
-def coverCard(cardItemList, position):
-    cardItemList.cards[position].changeState(False)
-"""
 
 #buttons
 class ButtonsView:
 
-    def __init__(self, game): #glaube nicht dass das game hier übergeben werden sollte
+    def __init__(self): #glaube nicht dass das game hier übergeben werden sollte
         self.mainWidget = QWidget()
         self.layout = QHBoxLayout()
-        self.game = game
                 
         self.raiseButton = QPushButton("RAISE")
         self.callButton = QPushButton("CALL")
@@ -164,31 +169,34 @@ class PotView:
         self.layout = QHBoxLayout()
 
         self.pot = pot
-        self.money = QLabel(f"Pot: {pot.money}€")
 
-        self.layout.addWidget(self.money)
+        self.money_label = QLabel("Pot:")
+
+        self.layout.addWidget(self.money_label)
 
         self.mainWidget.setLayout(self.layout)
 
-    def refreshPot(self):
-        self.money.setText(f"Pot: {self.pot.money}")
+    def refresh_Pot_Money(self, money):
+        self.money_label.setText(f"Pot: {money}")
 
 
 
-class PlayerView: #--> view won't need player
-    def __init__(self):
+class PlayerView: #--> view won't need player?
+    def __init__(self, player):
+
+        self.player = player
+
         self.mainWidget = QWidget()
         self.layout = QVBoxLayout()
 
-        self.name_label = QLabel()
+        self.name_label = QLabel(f"{self.player.name}")
         self.money_label = QLabel()
         self.bet_label = QLabel()
         self.blind_label = QLabel()
         self.activeText = QLabel("active")
         self.activeText.setStyleSheet("background-color : red;")
 
-        #self.refreshView()
-        #self.refreshStatus()
+        self.refreshView()
 
         self.layout.addWidget(self.name_label)
         self.layout.addWidget(self.money_label)
@@ -198,73 +206,70 @@ class PlayerView: #--> view won't need player
 
         self.mainWidget.setLayout(self.layout)
 
-    """
     def refreshView(self):
-        self.name.setText(f"{self.player.name}")
-        self.money.setText(f"Money: {self.player.money}")
-        self.bet.setText(f"Bet: {self.player.bet}")
+        self.money_label.setText(f"Money: {self.player.money}")
+        self.bet_label.setText(f"Bet: {self.player.bet}")
+        self.blind_label.setText(f"{self.player.blind}")
 
-    def refreshStatus(self):
-        if self.player.status:
+        #check active_state
+        if self.player.active_state:
             self.activeText.show()
         else:
             self.activeText.hide()
-    """
-#####################################################
+
+class PokerView:
+    def __init__(self, game: Game):
+        self.game = game
+
+        self.window = Window()
+        self.potView = PotView(game.pot) #maybe self.pot is not needed
+        self.buttonsView = ButtonsView()
+        self.playerView1 = PlayerView(game.player1)
+        self.playerView2 = PlayerView(game.player2)
+        self.cardView_player1 = CardView(game.player1.handCards)
+        self.cardView_player2 = CardView(game.player2.handCards)
+        self.cardView_table = CardView(game.tablecards)
+
+        self.window.addView(self.potView.mainWidget, 1, 1)
+        self.window.addView(self.buttonsView.mainWidget, 3, 1)
+        self.window.addView(self.playerView1.mainWidget, 1, 0)
+        self.window.addView(self.playerView2.mainWidget, 1, 2)
+        self.window.addView(self.cardView_player1.view, 0, 0)
+        self.window.addView(self.cardView_player2.view, 0, 2)
+        self.window.addView(self.cardView_table.view, 0, 1)
+
+
+        #connect signal
+        self.buttonsView.raiseButton.clicked.connect(self.game.raise_)
+        self.buttonsView.callButton.clicked.connect(self.game.call_)
+        self.buttonsView.checkButton.clicked.connect(self.game.check_)
+        self.buttonsView.foldButton.clicked.connect(self.game.fold_)
+
+        self.game.refresh_players_view_signal.connect(self.playerView1.refreshView)
+        self.game.refresh_players_view_signal.connect(self.playerView2.refreshView)
+
+        #self.game.show_player1_cards_signal.connect(self.cardView_player1.open_Player_Cards)
+        #self.game.show_player1_cards_signal.connect(self.cardView_player2.cover_Player_Cards)
+
+        #self.game.show_player2_cards_signal.connect(self.cardView_player2.open_Player_Cards)
+        #self.game.show_player2_cards_signal.connect(self.cardView_player1.cover_Player_Cards)
+
+        #self.game.show_tablecards_signal.connect(self.cardView_table.open_Table_Cards)
+
+        #self.game.refresh_card_view_signal.connect(self.cardView_player1.refreshView)
+        #self.game.refresh_card_view_signal.connect(self.cardView_player2.refreshView)
+
+    def showView(self):
+        self.window.show()
+
+
 """
-qt_app = QApplication(sys.argv)
-window = Window()
+        self.game.refresh_signal.connect(self.player1_prop_view.refresh_view)
 
-#####################################
-deck = cardlib.StandardDeck()
-deck.shuffle()
+        self.game.show_card_signal.connect(lambda: openCard(self.tableCardsItemList, 3))
 
-hand1 = cardlib.Hand()
-hand2 = cardlib.Hand()
+        self.game.change_active_to1_signal.connect(self.player1_prop_view.refresh_status)
+        self.game.change_active_to2_signal.connect(self.player2_prop_view.refresh_status)
 
-tableCards = []
-
-hand1.add_card(deck.draw())
-hand2.add_card(deck.draw())
-hand1.add_card(deck.draw())
-hand2.add_card(deck.draw())
-
-for i in range(5):
-    tableCards.append(deck.draw())
-
-###################################
-pot = Pot(0)
-
-player1 = PlayerProperties("Fabilinski", 100, 0, hand1, True)
-player2 = PlayerProperties("Mafabi", 100, 0, hand2, False)
-
-tableCardsItemList = CardItemList(tableCards)
-
-#open cards
-for i in range(2):
-    openCard(player1.card_item_list, i) ##can do same thing with close
-
-for i in range(2):
-    openCard(player2.card_item_list, i)
-
-for i in range(3):
-    openCard(tableCardsItemList, i)
-####################################
-
-cardview1 = CardView(player1.card_item_list)
-cardview2 = CardView(player2.card_item_list)
-cardviewtable = CardView(tableCardsItemList)
-buttons1 = ButtonsView()
-potView = PotView(pot)
-
-window.addView(PlayerPropertiesView(player1).mainWidget, 1, 3)
-window.addView(PlayerPropertiesView(player2).mainWidget, 1, 0)
-window.addView(cardview1.view, 0, 0)
-window.addView(cardview2.view, 0, 3)
-window.addView(cardviewtable.view, 0, 1)
-window.addView(buttons1.mainWidget, 3,1)
-window.addView(potView.mainWidget, 1, 1)
-
-window.show()
-qt_app.exec_()
+    
 """
