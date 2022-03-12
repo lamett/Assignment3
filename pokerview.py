@@ -7,11 +7,7 @@ GUI elements
 """
 
 from PyQt5.QtSvg import *
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
-import sys
-import cardlib
 from pokermodel import *
 
 ################################################################
@@ -24,7 +20,7 @@ class Window(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Texas Holdem")
-        #self.setStyleSheet("background-image:url(cards/table.png);")
+        self.setStyleSheet("background-image:url(cards/table.png);")
 
         self.mainWidget = QWidget()
         self.setCentralWidget(self.mainWidget)
@@ -104,7 +100,7 @@ class CardView:
     """
     Class CardView: Shows Cards.
     """
-    def __init__(self, cards): # cards: list of PlayingCards
+    def __init__(self, cards): #cards: list of PlayingCards
         self.cardItemList = CardItemList(cards)
         self.list_cardItems = self.cardItemList.list_cardItems
         self.scene = QGraphicsScene()
@@ -114,6 +110,11 @@ class CardView:
         self.view = QGraphicsView(self.scene)
         self.view.setGeometry(0, 0, 100, 110)
 
+    def change_Cards(self, cards):
+        print(cards)
+        self.cardItemList = CardItemList(cards)
+        self.list_cardItems = self.cardItemList.list_cardItems
+
     def open_Player_Cards(self):
         for i in range(2):
             self.cardItemList.openCard(i)
@@ -122,10 +123,19 @@ class CardView:
         for i in range(2):
             self.cardItemList.coverCard(i)
 
-    def open_Table_Cards(self):
-        i = 0
-        self.cardItemList.openCard(i)
-        i = i+1
+    def cover_Table_Cards(self):
+        for i in range(5):
+            self.cardItemList.coverCard(i)
+
+    def show_first3_table_cards(self):
+        for i in range(3):
+            self.cardItemList.openCard(i)
+
+    def show_fourth_card(self):
+        self.cardItemList.openCard(3)
+
+    def show_fifth_card(self):
+        self.cardItemList.openCard(4)
 
     def refreshView(self):
 
@@ -135,32 +145,62 @@ class CardView:
             self.scene.addItem(card)
 
 #buttons
-class ButtonsView:
+class ButtonsView: #**changed input layout
 
-    def __init__(self): #glaube nicht dass das game hier übergeben werden sollte
+    def __init__(self):
         self.mainWidget = QWidget()
-        self.layout = QHBoxLayout()
-                
+        self.widget_h1 = QWidget()
+        self.widget_h2 = QWidget()
+
+        self.layout_v = QVBoxLayout()
+        self.layout_h1 = QHBoxLayout()
+        self.layout_h2 = QHBoxLayout()
+
         self.raiseButton = QPushButton("RAISE")
         self.callButton = QPushButton("CALL")
         self.checkButton = QPushButton("CHECK")
         self.foldButton = QPushButton("FOLD")
 
-        #self.raiseButton.setAutoFillBackground(True)
-        #self.raiseButton.setStyleSheet("background-color : rgb(101, 252, 129); border = none")
+        self.raise_amount_text = QLabel("Amount to raise:")
+        self.raise_input = QLineEdit("0")
+        self.space_label = QLabel()
+        self.next_button = QPushButton("NEXT")
 
-        self.layout.addWidget(self.raiseButton)
-        self.layout.addWidget(self.callButton)
-        self.layout.addWidget(self.checkButton)
-        self.layout.addWidget(self.foldButton)
+        self.layout_h1.addWidget(self.raiseButton, 2)
+        self.layout_h1.addWidget(self.callButton, 2)
+        self.layout_h1.addWidget(self.checkButton, 2)
+        self.layout_h1.addWidget(self.foldButton, 2)
 
-        self.mainWidget.setLayout(self.layout)
+        self.layout_h2.addWidget(self.raise_amount_text)
+        self.layout_h2.addWidget(self.raise_input)
+        self.layout_h2.addWidget(self.space_label, 1)
+        self.layout_h2.addWidget(self.next_button)
 
-    def setActive(self, button):
-        QPushButton.setDisabled(button, False)
+        self.widget_h1.setLayout(self.layout_h1)
+        self.widget_h2.setLayout(self.layout_h2)
 
-    def setDisabled(self, button):
-        QPushButton.setDisabled(button, True)
+        self.layout_v.addWidget(self.widget_h1)
+        self.layout_v.addWidget(self.widget_h2)
+
+        self.mainWidget.setLayout(self.layout_v)
+
+    def set_next_button_Active(self):
+        QPushButton.setDisabled(self.next_button, False)
+
+    def set_next_button_Disabled(self):
+        QPushButton.setDisabled(self.next_button, True)
+
+    def set_buttons_Active(self):
+        QPushButton.setDisabled(self.raiseButton, False)
+        QPushButton.setDisabled(self.callButton, False)
+        QPushButton.setDisabled(self.checkButton, False)
+        QPushButton.setDisabled(self.foldButton, False)
+
+    def set_buttons_Disabled(self):
+        QPushButton.setDisabled(self.raiseButton, True)
+        QPushButton.setDisabled(self.callButton, True)
+        QPushButton.setDisabled(self.checkButton, True)
+        QPushButton.setDisabled(self.foldButton, True)
 
 #pot
 class PotView:
@@ -176,10 +216,8 @@ class PotView:
 
         self.mainWidget.setLayout(self.layout)
 
-    def refresh_Pot_Money(self, money):
-        self.money_label.setText(f"Pot: {money}")
-
-
+    def refresh_Pot_Money(self):
+        self.money_label.setText(f"Pot: {self.pot.get_value()}")
 
 class PlayerView: #--> view won't need player?
     def __init__(self, player):
@@ -192,16 +230,14 @@ class PlayerView: #--> view won't need player?
         self.name_label = QLabel(f"{self.player.name}")
         self.money_label = QLabel()
         self.bet_label = QLabel()
-        self.blind_label = QLabel()
         self.activeText = QLabel("active")
-        self.activeText.setStyleSheet("background-color : red;")
+        self.activeText.setStyleSheet("color: red;")
 
         self.refreshView()
 
         self.layout.addWidget(self.name_label)
         self.layout.addWidget(self.money_label)
         self.layout.addWidget(self.bet_label)
-        self.layout.addWidget(self.blind_label)
         self.layout.addWidget(self.activeText)
 
         self.mainWidget.setLayout(self.layout)
@@ -209,7 +245,6 @@ class PlayerView: #--> view won't need player?
     def refreshView(self):
         self.money_label.setText(f"Money: {self.player.money}")
         self.bet_label.setText(f"Bet: {self.player.bet}")
-        self.blind_label.setText(f"{self.player.blind}")
 
         #check active_state
         if self.player.active_state:
@@ -222,13 +257,13 @@ class PokerView:
         self.game = game
 
         self.window = Window()
-        self.potView = PotView(game.pot) #maybe self.pot is not needed
+        self.potView = PotView(self.game.pot)
         self.buttonsView = ButtonsView()
-        self.playerView1 = PlayerView(game.player1)
-        self.playerView2 = PlayerView(game.player2)
-        self.cardView_player1 = CardView(game.player1.handCards)
-        self.cardView_player2 = CardView(game.player2.handCards)
-        self.cardView_table = CardView(game.tablecards)
+        self.playerView1 = PlayerView(self.game.player1)
+        self.playerView2 = PlayerView(self.game.player2)
+        self.cardView_player1 = CardView(self.game.player1.handCards)
+        self.cardView_player2 = CardView(self.game.player2.handCards)
+        self.cardView_table = CardView(self.game.tableCards)
 
         self.window.addView(self.potView.mainWidget, 1, 1)
         self.window.addView(self.buttonsView.mainWidget, 3, 1)
@@ -238,38 +273,94 @@ class PokerView:
         self.window.addView(self.cardView_player2.view, 0, 2)
         self.window.addView(self.cardView_table.view, 0, 1)
 
+        self.cardView_player1.open_Player_Cards()
+        self.buttonsView.set_next_button_Disabled()
 
         #connect signal
-        self.buttonsView.raiseButton.clicked.connect(self.game.raise_)
+        self.buttonsView.raiseButton.clicked.connect(lambda: self.game.raise_(self.buttonsView.raise_input.text()))
         self.buttonsView.callButton.clicked.connect(self.game.call_)
         self.buttonsView.checkButton.clicked.connect(self.game.check_)
         self.buttonsView.foldButton.clicked.connect(self.game.fold_)
+        self.buttonsView.next_button.clicked.connect(self.game.next_match)
 
         self.game.refresh_players_view_signal.connect(self.playerView1.refreshView)
         self.game.refresh_players_view_signal.connect(self.playerView2.refreshView)
 
-        #self.game.show_player1_cards_signal.connect(self.cardView_player1.open_Player_Cards)
-        #self.game.show_player1_cards_signal.connect(self.cardView_player2.cover_Player_Cards)
+        self.game.show_player1_cards_signal.connect(self.cardView_player1.open_Player_Cards)
+        self.game.cover_player1_cards_signal.connect(self.cardView_player1.cover_Player_Cards)
 
-        #self.game.show_player2_cards_signal.connect(self.cardView_player2.open_Player_Cards)
-        #self.game.show_player2_cards_signal.connect(self.cardView_player1.cover_Player_Cards)
+        self.game.show_player2_cards_signal.connect(self.cardView_player2.open_Player_Cards)
+        self.game.cover_player2_cards_signal.connect(self.cardView_player2.cover_Player_Cards)
 
-        #self.game.show_tablecards_signal.connect(self.cardView_table.open_Table_Cards)
+        self.game.refresh_card_view_signal.connect(self.cardView_player1.refreshView)
+        self.game.refresh_card_view_signal.connect(self.cardView_player2.refreshView)
+        self.game.refresh_card_view_signal.connect(self.cardView_table.refreshView)
 
-        #self.game.refresh_card_view_signal.connect(self.cardView_player1.refreshView)
-        #self.game.refresh_card_view_signal.connect(self.cardView_player2.refreshView)
+        self.game.cover_tablecards_signal.connect(self.cardView_table.cover_Table_Cards)
+        self.game.show_first3_cards_signal.connect(self.cardView_table.show_first3_table_cards)
+        self.game.show_fourth_card_signal.connect(self.cardView_table.show_fourth_card)
+        self.game.show_fifth_card_signal.connect(self.cardView_table.show_fifth_card)
+
+        self.game.refresh_pot_view_signal.connect(self.potView.refresh_Pot_Money)
+
+        self.game.enable_next_button_signal.connect(self.buttonsView.set_next_button_Active)
+        self.game.disable_next_button_signal.connect(self.buttonsView.set_next_button_Disabled)
+
+        self.game.enable_buttons_signal.connect(self.buttonsView.set_buttons_Active)
+        self.game.disable_buttons_signal.connect(self.buttonsView.set_buttons_Disabled)
+
+        self.game.change_cards_signal.connect(lambda: self.cardView_player1.change_Cards(self.game.player1.handCards))
+        self.game.change_cards_signal.connect(lambda: self.cardView_player2.change_Cards(self.game.player2.handCards))
+        self.game.change_cards_signal.connect(lambda: self.cardView_table.change_Cards(self.game.tableCards))
+
+        #messages
+        self.msg = QMessageBox()
+
+        self.game.trigger_tie_message.connect(self.show_tie_message)
+        self.game.trigger_game_winner_message_signal.connect(lambda: self.show_game_winner_message(self.game.get_winner().name))
+        self.game.trigger_fold_winner_message_signal.connect(lambda: self.show_fold_win_message(self.game.get_winner().name,\
+                                                                                                     self.game.pot.get_value()))
+        self.game.trigger_match_winner_message_signal.connect(lambda: self.show_match_winner_message(self.game.get_winner().name,\
+                                                                                                     self.game.pot.get_value(),\
+                                                                                                     self.game.get_winning_handtype()))
+        self.game.raise_error_msg_signal.connect(self.show_raise_error_message)
+        self.game.check_error_msg_signal.connect(self.show_check_error_message)
+
+    def show_raise_error_message(self):
+        self.msg.setWindowTitle("Raise_Error")
+        self.msg.setText("You don't have enough money")
+        self.msg.setBaseSize(QSize(100, 100))
+        self.msg.exec()
+
+    def show_check_error_message(self):
+        self.msg.setWindowTitle("Check_Error")
+        self.msg.setText("Your bet have to be higher or equal to the others")
+        self.msg.setBaseSize(QSize(100, 100))
+        self.msg.exec()
+
+    def show_tie_message(self):
+        self.msg.setWindowTitle("Match Over")
+        self.msg.setText(f"It's a tie!")
+        self.msg.setBaseSize(QSize(100, 100))
+        self.msg.exec()
+
+    def show_game_winner_message(self, name):
+        self.msg.setWindowTitle("Game Over")
+        self.msg.setText(f"{name} wins the game!")
+        self.msg.setBaseSize(QSize(100, 100))
+        self.msg.exec()
+
+    def show_fold_win_message(self, name, pot_value):
+        self.msg.setWindowTitle("Match Over")
+        self.msg.setText(f"A Player folded their cards. {name} wins {pot_value}!")
+        self.msg.setBaseSize(QSize(100, 100))
+        self.msg.exec()
+
+    def show_match_winner_message(self, name, pot_value, handtype):
+        self.msg.setWindowTitle("Match Over")
+        self.msg.setText(f"{name} wins {pot_value} with {handtype}!")
+        self.msg.setBaseSize(QSize(100, 100))
+        self.msg.exec()
 
     def showView(self):
         self.window.show()
-
-
-"""
-        self.game.refresh_signal.connect(self.player1_prop_view.refresh_view)
-
-        self.game.show_card_signal.connect(lambda: openCard(self.tableCardsItemList, 3))
-
-        self.game.change_active_to1_signal.connect(self.player1_prop_view.refresh_status)
-        self.game.change_active_to2_signal.connect(self.player2_prop_view.refresh_status)
-
-    
-"""

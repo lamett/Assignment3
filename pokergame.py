@@ -3,12 +3,8 @@ Assignment 2
 author: Annabell Kießler, Davide Alpino
 03.03.2022
 
-Game state, main, QApplications
 """
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
-from PyQt5.QtWidgets import *
-from pokermodel import *
+
 from pokerview import *
 from pokermodel import *
 import sys
