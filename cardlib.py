@@ -1,11 +1,10 @@
 """
-Assignment 2
+Assignment 3
 author: Annabell Kießler, Davide Alpino
 08.03.2022
 
 Library
 """
-#imports
 import enum
 import sys
 import abc

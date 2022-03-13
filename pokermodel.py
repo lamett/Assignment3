@@ -1,20 +1,33 @@
 """
-Assignment 2
+Assignment 3
 author: Annabell Kießler, Davide Alpino
 03.03.2022
 
 Game logik, only QObject and pyqtSignal
 
+terms:
 game => beginns with even player properties, ends when one player has zero money.
-match => [0-00], beginns with players getting new cards, ends when the pot was won by one player
+match => beginns with players getting new cards, ends when the pot got won by one player
 round => [0-4], beginns with opening tablecards, end when all players checked
 """
 from PyQt5.QtCore import *
 from cardlib import *
 
+
 class Player(QObject):
+    """
+        Class Player: represents a Player with his attributes and methods to change them
+    """
 
     def __init__(self, name, money, bet, hand, active_state: bool):
+        """
+
+        @param name: the name of the player
+        @param money: the money of the player
+        @param bet: the bet he is taking in the actual phase
+        @param hand: the hand cards of the player
+        @param active_state: true: if the player is active and the cards are shown, false: if the player is not active and the cards are covered
+        """
         super().__init__()
         self.name = name
         self.money = money
@@ -27,62 +40,76 @@ class Player(QObject):
         self.money += value
 
     def decrease_money(self, value):
-        if self.money - value < 0:
-            print("ERROR: Player doesnt have that amount of money")
-        else:
-            self.money -= value
+        self.money -= value
 
     def increase_bet(self, value):
-        if value > self.money:
-            print("ERROR: Player doesnt have enough money to bet that high")
-        else:
-            self.bet += value
+        self.bet += value
 
     def reset_bet(self):
         self.bet = 0
 
     def change_hand(self, hand):
+        """
+        changes the hand cards of the player for the next round
+        @param hand: the new hand cards
+        """
         self.hand = hand
         self.handCards = self.hand.cards
 
+
 class Game(QObject):
-    # signals
+    """
+        Class Game: represents the whole game logic of a game
+        Attributes: deck: StandardDeck(), pot: Pot(), tableCards: [],
+        player1 : Player(), player2: Player(), winner: Player(), match_number: int,
+        round_number: int, check_count: int
+    """
+
+    # Refresh signals to refresh the views
     refresh_players_view_signal = pyqtSignal()
     refresh_card_view_signal = pyqtSignal()
     refresh_pot_view_signal = pyqtSignal()
 
+    # Signals to show and cover cards
     show_player1_cards_signal = pyqtSignal()
     cover_player1_cards_signal = pyqtSignal()
     show_player2_cards_signal = pyqtSignal()
     cover_player2_cards_signal = pyqtSignal()
 
+    # Signals to show messages
     trigger_tie_message = pyqtSignal()
     trigger_game_winner_message_signal = pyqtSignal()
     trigger_match_winner_message_signal = pyqtSignal()
     trigger_fold_winner_message_signal = pyqtSignal()
 
+    # Signals for error messages
     raise_error_msg_signal = pyqtSignal()
     check_error_msg_signal = pyqtSignal()
 
+    # Signals to show/cover tablecards
     cover_tablecards_signal = pyqtSignal()
     show_first3_cards_signal = pyqtSignal()
     show_fourth_card_signal = pyqtSignal()
     show_fifth_card_signal = pyqtSignal()
 
+    # Signals to enable/disable button for the next round
     enable_next_button_signal = pyqtSignal()
     disable_next_button_signal = pyqtSignal()
 
+    # Signals to enable/disable buttons
     enable_buttons_signal = pyqtSignal()
     disable_buttons_signal = pyqtSignal()
 
+    # Signal to change the cards
     change_cards_signal = pyqtSignal()
 
     def __init__(self):
+
         super().__init__()
 
-        self.deck = self.init_Deck()
+        self.deck = self.init_deck()
         self.pot = Pot()
-        self.tableCards = self.init_Tablecards()
+        self.tableCards = self.init_tablecards()
         self.player1, self.player2 = self.create_new_players(100, 100)
 
         self.winner = None
@@ -91,30 +118,47 @@ class Game(QObject):
         self.round_number = 0
         self.check_count = 0
 
-    #initialize Game
-    def init_Deck(self):
+    def init_deck(self):
+        """
+        Initalizes a new Deck and shuffles it
+        @return: the new Deck
+        """
         deck = StandardDeck()
         deck.shuffle()
         return deck
 
-    def init_Tablecards(self):
+    def init_tablecards(self):
+        """
+        method to init the 5 tablecards for a game round
+        @return: the 5 tablecards
+        """
         cards = []
         for i in range(5):
             cards.append(self.deck.draw())
         return cards
 
-    def create_Hand(self):
+    def create_hand(self):
+        """
+        creats a hand from current deck
+        @return: Hand() with two PlayingCards
+        """
         hand = Hand()
         hand.add_card(self.deck.draw())
         hand.add_card(self.deck.draw())
         return hand
 
     def create_new_players(self, player_money1, player_money2):
-        player1 = Player("Player1", player_money1, 0, self.create_Hand(), True)
-        player2 = Player("Player2", player_money2, 0, self.create_Hand(), False)
+        """
+        This method create 2 new players, one active and one passive
+        @param player_money1: money of player 1
+        @param player_money2: money of player2
+        @return: two Player()
+        """
+        player1 = Player("Player1", player_money1, 0, self.create_hand(), True)
+        player2 = Player("Player2", player_money2, 0, self.create_hand(), False)
         return player1, player2
 
-    #gameState
+    # gameState
     def reset_match_number(self):
         self.match_number = 0
 
@@ -125,28 +169,39 @@ class Game(QObject):
         self.check_count = 0
 
     def increase_check_count(self, value):
+        """
+        help method to increase the counter, that know how many times a check occured so we can in the
+        case of 2 checks go on to the next step of tha actual round
+        @param value: value to add to the check_count
+        """
         self.check_count += value
         if self.check_count == 2:
             self.reset_check_count()
             self.next_round()
 
     def next_round(self):
+        """
+        logic to go on to the next round, depending on what step we are in right now
+        different signals will be triggered to show now cards, test if somebody has won and more
+        """
         self.round_number += 1
-        if self.round_number <= 3:
-            self.pot.raisePot(self.player1.bet + self.player2.bet)
-            self.player1.decrease_money(self.player1.bet)
-            self.player2.decrease_money(self.player2.bet)
-            self.player1.reset_bet()
-            self.player2.reset_bet()
-            self.refresh_players_view_signal.emit()
-            self.refresh_pot_view_signal.emit()
 
-            if self.round_number == 1:
-                self.show_first3_cards_signal.emit()
-            if self.round_number == 2:
-                self.show_fourth_card_signal.emit()
-            if self.round_number == 3:
-                self.show_fifth_card_signal.emit()
+        self.pot.raise_pot(self.player1.bet + self.player2.bet)
+        self.player1.decrease_money(self.player1.bet)
+        self.player2.decrease_money(self.player2.bet)
+        self.player1.reset_bet()
+        self.player2.reset_bet()
+        self.refresh_players_view_signal.emit()
+        self.refresh_pot_view_signal.emit()
+
+        if self.round_number == 1:
+            self.show_first3_cards_signal.emit()
+
+        if self.round_number == 2:
+            self.show_fourth_card_signal.emit()
+
+        if self.round_number == 3:
+            self.show_fifth_card_signal.emit()
 
         if self.round_number == 4:
 
@@ -154,15 +209,15 @@ class Game(QObject):
             self.show_player2_cards_signal.emit()
             self.refresh_players_view_signal.emit()
 
-            self.winner = self.compare_PokerHands()
+            self.winner = self.compare_pokerhands()
 
             if self.winner != None:
                 self.winner.increase_money(self.pot.value)
-                self.trigger_match_winner_message_signal.emit()   #change to match-winner-msg
+                self.trigger_match_winner_message_signal.emit()
 
             if self.winner == None:
-                self.player1.increase_money(int(self.pot.value/2))
-                self.player2.increase_money(int(self.pot.value/2))
+                self.player1.increase_money(int(self.pot.value / 2))
+                self.player2.increase_money(int(self.pot.value / 2))
                 self.trigger_tie_message.emit()
 
             self.refresh_players_view_signal.emit()
@@ -170,6 +225,9 @@ class Game(QObject):
             self.disable_buttons_signal.emit()
 
     def next_match(self):
+        """
+        starts a new match if the actual round has ended and there isnt a game_winner
+        """
         if not self.check_winner():
             self.disable_next_button_signal.emit()
             self.enable_buttons_signal.emit()
@@ -177,15 +235,15 @@ class Game(QObject):
             self.reset_round_number()
             self.reset_check_count()
 
-            self.deck = self.init_Deck()
+            self.deck = self.init_deck()
 
-            self.pot.reset_Pot()
+            self.pot.reset_pot()
             self.refresh_pot_view_signal.emit()
 
-            self.tableCards = self.init_Tablecards()
+            self.tableCards = self.init_tablecards()
 
-            self.player1.change_hand(self.create_Hand())
-            self.player2.change_hand(self.create_Hand())
+            self.player1.change_hand(self.create_hand())
+            self.player2.change_hand(self.create_hand())
 
             self.change_cards_signal.emit()
 
@@ -194,10 +252,12 @@ class Game(QObject):
             self.set_next_player_active()
             self.refresh_card_view_signal.emit()
 
-
-    #active_player_handling
+    # active_player_handling
     def set_next_player_active(self):
-        if (self.player1.active_state):
+        """
+        sets the next player active and sends the signal to open and cover the certain cards
+        """
+        if self.player1.active_state:
             self.player1.active_state = False
             self.player2.active_state = True
             self.show_player2_cards_signal.emit()
@@ -221,15 +281,18 @@ class Game(QObject):
             return self.player1
         return self.player2
 
-    #buttons
+    # buttons
     def raise_(self, bet_string):
-
+        """
+        logic behind raise button, increases the actual bet if all necessary conditions are met
+        @param bet_string: the amount the player wants to bet
+        """
         bet = int(bet_string)
         player_active = self.get_active_player()
         player_not_active = self.get_not_active_player()
 
-        if bet <= (player_active.money + player_active.bet): #check if enough money
-            if (player_active.bet + bet) == player_not_active.bet:  #check if raise == call
+        if bet <= (player_active.money + player_active.bet):  # check if enough money
+            if (player_active.bet + bet) == player_not_active.bet:  # check if raise == call
                 self.call_()
             else:
                 player_active.increase_bet(bet)
@@ -240,6 +303,9 @@ class Game(QObject):
             self.raise_error_msg_signal.emit()
 
     def call_(self):
+        """
+        implements the logic of the call button, to accept the bet the other player bets and move on to the next round
+        """
         player_active = self.get_active_player()
         player_not_active = self.get_not_active_player()
 
@@ -252,6 +318,9 @@ class Game(QObject):
             self.refresh_players_view_signal.emit()
 
     def check_(self):
+        """
+        implements the logic of the check button, if both player checked the next round will start
+        """
         if self.player1.bet == self.player2.bet:
             self.set_next_player_active()
             self.increase_check_count(1)
@@ -259,21 +328,39 @@ class Game(QObject):
             self.check_error_msg_signal.emit()
 
     def fold_(self):
+        """
+        implements the logic of the fold button, adds the pot to the other active player and enable the
+        next button to start a new round
+        """
+        self.pot.raise_pot(self.player1.bet + self.player2.bet)
+        self.player1.decrease_money(self.player1.bet)
+        self.player2.decrease_money(self.player2.bet)
+        self.player1.reset_bet()
+        self.player2.reset_bet()
+
+        self.refresh_players_view_signal.emit()
+        self.refresh_pot_view_signal.emit()
+
         self.winner = self.get_not_active_player()
         self.winner.increase_money(self.pot.value)
         self.trigger_fold_winner_message_signal.emit()
+
         self.refresh_players_view_signal.emit()
 
         self.enable_next_button_signal.emit()
         self.disable_buttons_signal.emit()
 
-    def compare_PokerHands(self):
-        pokerHand1 = self.player1.hand.best_poker_hand(self.tableCards)
-        pokerHand2 = self.player2.hand.best_poker_hand(self.tableCards)
+    def compare_pokerhands(self):
+        """
+        compare the hands of both players combined with the tablecards to see which player has won the round
+        @return: the player with the best poker hand
+        """
+        poker_hand1 = self.player1.hand.best_poker_hand(self.tableCards)
+        poker_hand2 = self.player2.hand.best_poker_hand(self.tableCards)
 
-        if pokerHand1 < pokerHand2:
+        if poker_hand1 < poker_hand2:
             return self.player2
-        if pokerHand2 < pokerHand1:
+        if poker_hand2 < poker_hand1:
             return self.player1
 
         return None
@@ -285,26 +372,35 @@ class Game(QObject):
         return self.winner.hand.best_poker_hand(self.tableCards).handtype.name
 
     def check_winner(self):
-        if (self.player1.money == 0):
+        """
+        Checks if there is a winner of the whole game and in that cas emits a winning message
+        @return: True if there is a winner and the game is over else false
+        """
+        if self.player1.money == 0:
             self.winner = self.player2
             self.trigger_game_winner_message_signal.emit()
             return True
-        if (self.player2.money == 0):
+        if self.player2.money == 0:
             self.winner = self.player1
             self.trigger_game_winner_message_signal.emit()
             return True
 
         return False
 
+
 class Pot:
+    """
+    class Pot: represents the Pot of the game where the actual bet of both players is stored
+    """
+
     def __init__(self):
         self.value = 0
 
-    def raisePot(self, value):
+    def raise_pot(self, value):
         self.value += value
 
     def get_value(self):
         return self.value
 
-    def reset_Pot(self):
+    def reset_pot(self):
         self.value = 0
