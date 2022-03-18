@@ -326,51 +326,51 @@ class PokerView:
         self.buttonsView.foldButton.clicked.connect(self.game.fold_)
         self.buttonsView.next_button.clicked.connect(self.game.next_match)
 
-        self.game.refresh_players_view_signal.connect(self.playerView1.refresh_view)
-        self.game.refresh_players_view_signal.connect(self.playerView2.refresh_view)
+        self.game.refresh_players_view.connect(self.playerView1.refresh_view)
+        self.game.refresh_players_view.connect(self.playerView2.refresh_view)
 
-        self.game.show_player1_cards_signal.connect(self.cardView_player1.open_player_cards)
-        self.game.cover_player1_cards_signal.connect(self.cardView_player1.cover_player_cards)
+        self.game.show_player1_cards.connect(self.cardView_player1.open_player_cards)
+        self.game.cover_player1_cards.connect(self.cardView_player1.cover_player_cards)
 
-        self.game.show_player2_cards_signal.connect(self.cardView_player2.open_player_cards)
-        self.game.cover_player2_cards_signal.connect(self.cardView_player2.cover_player_cards)
+        self.game.show_player2_cards.connect(self.cardView_player2.open_player_cards)
+        self.game.cover_player2_cards.connect(self.cardView_player2.cover_player_cards)
 
-        self.game.refresh_card_view_signal.connect(self.cardView_player1.refresh_view)
-        self.game.refresh_card_view_signal.connect(self.cardView_player2.refresh_view)
-        self.game.refresh_card_view_signal.connect(self.cardView_table.refresh_view)
+        self.game.refresh_card_view.connect(self.cardView_player1.refresh_view)
+        self.game.refresh_card_view.connect(self.cardView_player2.refresh_view)
+        self.game.refresh_card_view.connect(self.cardView_table.refresh_view)
 
-        self.game.cover_tablecards_signal.connect(self.cardView_table.cover_table_cards)
-        self.game.show_first3_cards_signal.connect(self.cardView_table.show_first3_table_cards)
-        self.game.show_fourth_card_signal.connect(self.cardView_table.show_fourth_card)
-        self.game.show_fifth_card_signal.connect(self.cardView_table.show_fifth_card)
+        self.game.cover_tablecards.connect(self.cardView_table.cover_table_cards)
+        self.game.show_first3_cards.connect(self.cardView_table.show_first3_table_cards)
+        self.game.show_fourth_card.connect(self.cardView_table.show_fourth_card)
+        self.game.show_fifth_card.connect(self.cardView_table.show_fifth_card)
 
-        self.game.refresh_pot_view_signal.connect(self.potView.refresh_pot_money)
+        self.game.refresh_pot_view.connect(self.potView.refresh_pot_money)
 
-        self.game.enable_next_button_signal.connect(self.buttonsView.set_next_button_active)
-        self.game.disable_next_button_signal.connect(self.buttonsView.set_next_button_disabled)
+        self.game.enable_next_button.connect(self.buttonsView.set_next_button_active)
+        self.game.disable_next_button.connect(self.buttonsView.set_next_button_disabled)
 
-        self.game.enable_buttons_signal.connect(self.buttonsView.set_buttons_active)
-        self.game.disable_buttons_signal.connect(self.buttonsView.set_buttons_disabled)
+        self.game.enable_buttons.connect(self.buttonsView.set_buttons_active)
+        self.game.disable_buttons.connect(self.buttonsView.set_buttons_disabled)
 
-        self.game.change_cards_signal.connect(lambda : self.cardView_player1.change_cards(self.game.player1.handCards))
-        self.game.change_cards_signal.connect(lambda : self.cardView_player2.change_cards(self.game.player2.handCards))
-        self.game.change_cards_signal.connect(lambda : self.cardView_table.change_cards(self.game.tableCards))
+        self.game.change_cards.connect(lambda : self.cardView_player1.change_cards(self.game.player1.handCards))
+        self.game.change_cards.connect(lambda : self.cardView_player2.change_cards(self.game.player2.handCards))
+        self.game.change_cards.connect(lambda : self.cardView_table.change_cards(self.game.tableCards))
 
         # messages
         self.msg = QMessageBox()
 
         self.game.trigger_tie_message.connect(self.show_tie_message)
-        self.game.trigger_game_winner_message_signal.connect(
+        self.game.trigger_game_winner_message.connect(
             lambda : self.show_game_winner_message(self.game.get_winner().name))
-        self.game.trigger_fold_winner_message_signal.connect(
+        self.game.trigger_fold_winner_message.connect(
             lambda : self.show_fold_win_message(self.game.get_winner().name, \
                                                 self.game.pot.get_value()))
-        self.game.trigger_match_winner_message_signal.connect(
+        self.game.trigger_match_winner_message.connect(
             lambda : self.show_match_winner_message(self.game.get_winner().name, \
                                                     self.game.pot.get_value(), \
                                                     self.game.get_winning_handtype()))
-        self.game.raise_error_msg_signal.connect(self.show_raise_error_message)
-        self.game.check_error_msg_signal.connect(self.show_check_error_message)
+        self.game.raise_error_msg.connect(self.show_raise_error_message)
+        self.game.check_error_msg.connect(self.show_check_error_message)
 
     def show_raise_error_message(self) :
         self.msg.setWindowTitle("Raise_Error")
