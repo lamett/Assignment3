@@ -14,59 +14,57 @@ from pokermodel import *
 ################################################################
 
 # window
-class Window(QMainWindow) :
+class Window(QGroupBox):
     """
     Class Window: Sets the window
     """
 
-    def __init__(self) :
+    def __init__(self):
         super().__init__()
+
         self.setWindowTitle("Texas Holdem")
         self.setStyleSheet("background-image:url(cards/table.png);")
-
-        self.mainWidget = QWidget()
-        self.setCentralWidget(self.mainWidget)
-
         self.layout = QGridLayout()
-        self.mainWidget.setLayout(self.layout)
+        self.setLayout(self.layout)
 
     def add_view(self, widget, column, row):
         self.layout.addWidget(widget, column, row)
 
 
 # cards
-class CardRenderer :
+class CardRenderer:
     """
     Class CardRenderer: Gets Image depending on card value and suit and depending on the state if the card is flipped or open.
     """
 
-    def __init__(self, card: PlayingCard, status) :
+    def __init__(self, card: PlayingCard, status):
+        super().__init__()
 
-        self.dicValue = {11 : "J",
-                         12 : "Q",
-                         13 : "K",
-                         14 : "A"}
+        dicValue = {11 : "J",
+                     12 : "Q",
+                     13 : "K",
+                     14 : "A"}
 
         self.mappedsuit = card.suit.name[0]
 
-        if card.get_value() > 10 :
-            self.mappedvalue = self.dicValue[card.get_value()]
-        else :
+        if card.get_value() > 10:
+            self.mappedvalue = dicValue[card.get_value()]
+        else:
             self.mappedvalue = card.get_value()
 
-        if status :
+        if status:
             self.open()
-        else :
+        else:
             self.flipped()
 
-    def flipped(self) :
+    def flipped(self):
         self.renderer = QSvgRenderer('cards/Red_Back_2.svg')
 
     def open(self) :
         self.renderer = QSvgRenderer(f'cards/{str(self.mappedvalue) + self.mappedsuit}.svg')
 
 
-class CardItem(QGraphicsSvgItem) :
+class CardItem(QGraphicsSvgItem):
     """
     Class CardItem: A simple overloaded QGraphicsSvgItem that also stores the card position and the state_open
     """
@@ -83,16 +81,16 @@ class CardItem(QGraphicsSvgItem) :
         self.setSharedRenderer(CardRenderer(self.card, self.status_open).renderer)
 
 
-class CardItemList :
+class CardItemList:
     """
     Class CardItemList: List of card items.
     """
 
-    def __init__(self, cards) :
+    def __init__(self, cards):
         self.list_cardItems = []
         self.ini(cards)
 
-    def ini(self, cards) :
+    def ini(self, cards):
         for indices, card in enumerate(cards) :
             carditem = CardItem(card, indices, False)
             self.list_cardItems.append(carditem)
@@ -104,20 +102,22 @@ class CardItemList :
         self.list_cardItems[position].change_state(False)
 
 
-class CardView :
+class CardView(QGraphicsView):
     """
     Class CardView: Shows Cards.
     """
 
-    def __init__(self, cards) :  # cards: list of PlayingCards
+    def __init__(self, cards):  # cards: list of PlayingCards
+        super().__init__()
+
         self.cardItemList = CardItemList(cards)
         self.list_cardItems = self.cardItemList.list_cardItems
         self.scene = QGraphicsScene()
 
         self.refresh_view()
 
-        self.view = QGraphicsView(self.scene)
-        self.view.setGeometry(0, 0, 100, 110)
+        self.setScene(self.scene)
+        self.setGeometry(0, 0, 100, 110)
 
     def change_cards(self, cards) :
         self.cardItemList = CardItemList(cards)
@@ -153,16 +153,17 @@ class CardView :
 
 
 # buttons
-class ButtonsView :
+class ButtonsView(QWidget):
     """
     Class ButtonView: class for all the different buttons(raise, call, check, fold, amount to raise and next
     """
 
-    def __init__(self) :
+    def __init__(self):
         """
         inits all the Layouts and buttons and sets everything to our mainWIdget
         """
-        self.mainWidget = QWidget()
+        super().__init__()
+
         self.widget_h1 = QWidget()
         self.widget_h2 = QWidget()
 
@@ -196,7 +197,7 @@ class ButtonsView :
         self.layout_v.addWidget(self.widget_h1)
         self.layout_v.addWidget(self.widget_h2)
 
-        self.mainWidget.setLayout(self.layout_v)
+        self.setLayout(self.layout_v)
 
     def set_next_button_active(self) :
         QPushButton.setDisabled(self.next_button, False)
@@ -218,17 +219,18 @@ class ButtonsView :
 
 
 # pot
-class PotView :
+class PotView(QWidget):
     """
     class PotView: this class represents the Pot that contains the bets of all Players
     """
 
-    def __init__(self, pot) :
+    def __init__(self, pot):
         """
         inits the pot
         @param pot: the amount thats inside the pot
         """
-        self.mainWidget = QWidget()
+        super().__init__()
+
         self.layout = QHBoxLayout()
 
         self.pot = pot
@@ -237,13 +239,13 @@ class PotView :
 
         self.layout.addWidget(self.money_label)
 
-        self.mainWidget.setLayout(self.layout)
+        self.setLayout(self.layout)
 
     def refresh_pot_money(self) :
         self.money_label.setText(f"Pot: {self.pot.get_value()}")
 
 
-class PlayerView :
+class PlayerView(QWidget):
     """
     class PlayerView: View of one player
     """
@@ -253,9 +255,10 @@ class PlayerView :
         inits the view for one player
         @param player: the player for whicht the view will be initialised
         """
+        super().__init__()
+
         self.player = player
 
-        self.mainWidget = QWidget()
         self.layout = QVBoxLayout()
 
         self.name_label = QLabel(f"{self.player.name}")
@@ -271,7 +274,7 @@ class PlayerView :
         self.layout.addWidget(self.bet_label)
         self.layout.addWidget(self.activeText)
 
-        self.mainWidget.setLayout(self.layout)
+        self.setLayout(self.layout)
 
     def refresh_view(self) :
         self.money_label.setText(f"Money: {self.player.money}")
@@ -284,7 +287,7 @@ class PlayerView :
             self.activeText.hide()
 
 
-class PokerView :
+class PokerView:
     """
     class PokerView: View to aggregate all other views and connect all signals and messages
     """
@@ -305,13 +308,13 @@ class PokerView :
         self.cardView_player2 = CardView(self.game.player2.handCards)
         self.cardView_table = CardView(self.game.tableCards)
 
-        self.window.add_view(self.potView.mainWidget, 1, 1)
-        self.window.add_view(self.buttonsView.mainWidget, 3, 1)
-        self.window.add_view(self.playerView1.mainWidget, 1, 0)
-        self.window.add_view(self.playerView2.mainWidget, 1, 2)
-        self.window.add_view(self.cardView_player1.view, 0, 0)
-        self.window.add_view(self.cardView_player2.view, 0, 2)
-        self.window.add_view(self.cardView_table.view, 0, 1)
+        self.window.add_view(self.potView, 1, 1)
+        self.window.add_view(self.buttonsView, 3, 1)
+        self.window.add_view(self.playerView1, 1, 0)
+        self.window.add_view(self.playerView2, 1, 2)
+        self.window.add_view(self.cardView_player1, 0, 0)
+        self.window.add_view(self.cardView_player2, 0, 2)
+        self.window.add_view(self.cardView_table, 0, 1)
 
         self.cardView_player1.open_player_cards()
         self.buttonsView.set_next_button_disabled()
