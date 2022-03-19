@@ -293,18 +293,23 @@ class PokerView:
         # messages
         self.msg = QMessageBox() #ein msg signal mit übergabe des txt**
 
-        self.game.trigger_tie_message.connect(self.show_tie_message)
-        self.game.trigger_game_winner_message.connect(
-            lambda: self.show_game_winner_message(self.game.get_winner().name))
-        self.game.trigger_fold_winner_message.connect(
-            lambda: self.show_fold_win_message(self.game.get_winner().name, \
-                                                self.game.pot.get_value()))
-        self.game.trigger_match_winner_message.connect(
-            lambda: self.show_match_winner_message(self.game.get_winner().name, \
-                                                    self.game.pot.get_value(), \
-                                                    self.game.get_winning_handtype()))
-        self.game.raise_error_msg.connect(self.show_raise_error_message)
-        self.game.check_error_msg.connect(self.show_check_error_message)
+        self.game.game_state_message.connect(lambda x: self.show_message(x))
+
+    
+    def show_message(self, message):
+        if(message == "raise_error"):
+            self.show_raise_error_message()
+        elif(message == "show_check_error"):
+            self.show_check_error_message()
+        elif(message == "tie"):
+            self.show_tie_message()
+        elif(message == "game_winner"):
+            self.show_game_winner_message(self.game.get_winner().name)
+        elif(message == "fold_winner"):
+            self.show_fold_win_message(self.game.get_winner().name,self.game.pot.get_value())
+        elif(message == "match_winner"):
+            self.show_match_winner_message(self.game.get_winner().name,self.game.pot.get_value(),self.game.get_winning_handtype())
+
 
     def show_raise_error_message(self) :
         self.msg.setWindowTitle("Raise_Error")

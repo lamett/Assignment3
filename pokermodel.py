@@ -61,15 +61,8 @@ class Game(QObject):
     refresh_player_view = pyqtSignal()#in zugehörigen klassen definieren**
     refresh_table_view = pyqtSignal()
 
-    # Signals to show messages
-    trigger_tie_message = pyqtSignal()#ein signal für msg**
-    trigger_game_winner_message = pyqtSignal()
-    trigger_match_winner_message = pyqtSignal()
-    trigger_fold_winner_message = pyqtSignal()
-
-    # Signals for error messages
-    raise_error_msg = pyqtSignal()
-    check_error_msg = pyqtSignal()
+    #sends errors and game states like winning messages
+    game_state_message = pyqtSignal(str)
 
     # Signals to enable/disable button for the next round
     enable_next_button = pyqtSignal()#ein signal für enable/disable: wenn enabled setzt disabled, wenn disabled setzt enabled**
@@ -171,6 +164,7 @@ class Game(QObject):
 
         if self.round_number == 2:
             self.refresh_table_view.emit()
+            self.game_state_message.emit("Test")
 
         if self.round_number == 3:
             self.refresh_table_view.emit()
@@ -185,13 +179,13 @@ class Game(QObject):
 
             if self.winner != None:
                 self.winner.increase_money(self.pot.value)
-                self.trigger_match_winner_message.emit()
+                self.game_state_message.emit("match_winner")
 
             if self.winner == None:
                 for player in self.players:
                     player.increase_money(int(self.pot.value / 2))
 
-                self.trigger_tie_message.emit()
+                self.game_state_message.emit("tie")
 
             self.refresh_player_view.emit()
 
@@ -277,7 +271,7 @@ class Game(QObject):
                 self.set_next_player_active()
 
         else:
-            self.raise_error_msg.emit()
+            self.game_state_message.emit("raise_error")
 
     def call_(self):
         """
@@ -308,7 +302,7 @@ class Game(QObject):
             self.set_next_player_active()
             self.increase_check_count(1)
         else:
-            self.check_error_msg.emit()
+            self.game_state_message.emit("check_error")
 
     def fold_(self):
         """
@@ -325,7 +319,7 @@ class Game(QObject):
 
         self.winner = self.get_not_active_player()
         self.winner.increase_money(self.pot.value)
-        self.trigger_fold_winner_message.emit()
+        self.game_state_message.emit("fold_winner")
 
         self.refresh_player_view.emit()
 
