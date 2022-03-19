@@ -8,10 +8,10 @@ GUI elements
 
 from PyQt5.QtSvg import *
 from PyQt5.QtWidgets import *
+
+import cardlib
 from pokermodel import *
 
-
-################################################################
 
 # window
 class Window(QGroupBox):
@@ -31,75 +31,15 @@ class Window(QGroupBox):
         self.layout.addWidget(widget, column, row)
 
 
-# cards
-class CardRenderer:
-    """
-    Class CardRenderer: Gets Image depending on card value and suit and depending on the state if the card is flipped or open.
-    """
-
-    def __init__(self, card: PlayingCard, status):
-        super().__init__()
-
-        dicValue = {11 : "J",
-                     12 : "Q",
-                     13 : "K",
-                     14 : "A"}
-
-        self.mappedsuit = card.suit.name[0]
-
-        if card.get_value() > 10:
-            self.mappedvalue = dicValue[card.get_value()]
-        else:
-            self.mappedvalue = card.get_value()
-
-        if status:
-            self.open()
-        else:
-            self.flipped()
-
-    def flipped(self):
-        self.renderer = QSvgRenderer('cards/Red_Back_2.svg')
-
-    def open(self) :
-        self.renderer = QSvgRenderer(f'cards/{str(self.mappedvalue) + self.mappedsuit}.svg')
-
-
 class CardItem(QGraphicsSvgItem):
     """
     Class CardItem: A simple overloaded QGraphicsSvgItem that also stores the card position and the state_open
     """
 
-    def __init__(self, card, position, state_open) :  # state--> open:TRUE or flipped:FAlSE
+    def __init__(self, card_img, position):
         super().__init__()
-        self.card = card
-        self.setSharedRenderer(CardRenderer(card, state_open).renderer)
+        self.setSharedRenderer(card_img)
         self.position = position
-        self.status_open = state_open
-
-    def change_state(self, status_open) :
-        self.status_open = status_open
-        self.setSharedRenderer(CardRenderer(self.card, self.status_open).renderer)
-
-
-class CardItemList:
-    """
-    Class CardItemList: List of card items.
-    """
-
-    def __init__(self, cards):
-        self.list_cardItems = []
-        self.ini(cards)
-
-    def ini(self, cards):
-        for indices, card in enumerate(cards) :
-            carditem = CardItem(card, indices, False)
-            self.list_cardItems.append(carditem)
-
-    def open_card(self, position) :  # position of card in ItemList
-        self.list_cardItems[position].change_state(True)
-
-    def cover_card(self, position) :  # position of card in ItemList
-        self.list_cardItems[position].change_state(False)
 
 
 class CardView(QGraphicsView):
@@ -107,49 +47,20 @@ class CardView(QGraphicsView):
     Class CardView: Shows Cards.
     """
 
-    def __init__(self, cards):  # cards: list of PlayingCards
+    def __init__(self):
         super().__init__()
 
-        self.cardItemList = CardItemList(cards)
-        self.list_cardItems = self.cardItemList.list_cardItems
         self.scene = QGraphicsScene()
-
-        self.refresh_view()
-
         self.setScene(self.scene)
-        self.setGeometry(0, 0, 100, 110)
 
-    def change_cards(self, cards) :
-        self.cardItemList = CardItemList(cards)
-        self.list_cardItems = self.cardItemList.list_cardItems
+    def change_cards(self, card_imgs):
+        cardItem_list = []
+        for pos, card_img in enumerate(card_imgs):
+                cardItem_list.append(CardItem(card_img, pos))
 
-    def open_player_cards(self) :
-        for i in range(2) :
-            self.cardItemList.open_card(i)
-
-    def cover_player_cards(self) :
-        for i in range(2) :
-            self.cardItemList.cover_card(i)
-
-    def cover_table_cards(self) :
-        for i in range(5) :
-            self.cardItemList.cover_card(i)
-
-    def show_first3_table_cards(self) :
-        for i in range(3) :
-            self.cardItemList.open_card(i)
-
-    def show_fourth_card(self) :
-        self.cardItemList.open_card(3)
-
-    def show_fifth_card(self) :
-        self.cardItemList.open_card(4)
-
-    def refresh_view(self) :
-        self.scene.clear()
-        for card in self.list_cardItems :
-            card.setPos(card.position * 125, 0)
-            self.scene.addItem(card)
+        for cardItem in cardItem_list:
+            cardItem.setPos(cardItem.position * 125, 0)
+            self.scene.addItem(cardItem)
 
 
 # buttons
@@ -199,7 +110,7 @@ class ButtonsView(QWidget):
 
         self.setLayout(self.layout_v)
 
-    def set_next_button_active(self) :
+    def set_next_button_active(self) :# alles zu einer funktion mergen**
         QPushButton.setDisabled(self.next_button, False)
 
     def set_next_button_disabled(self) :
@@ -218,31 +129,46 @@ class ButtonsView(QWidget):
         QPushButton.setDisabled(self.foldButton, True)
 
 
-# pot
-class PotView(QWidget):
+class TableView(QWidget):
     """
-    class PotView: this class represents the Pot that contains the bets of all Players
+    class TableView: View of middle table
     """
 
-    def __init__(self, pot):
-        """
-        inits the pot
-        @param pot: the amount thats inside the pot
-        """
+    def __init__(self, game, pot, all_card_imgs):
         super().__init__()
 
-        self.layout = QHBoxLayout()
-
         self.pot = pot
+        self.game = game
+        self.all_card_imgs = all_card_imgs
+        layout = QVBoxLayout()
 
-        self.money_label = QLabel("Pot:")
+        self.cardView = CardView()
 
-        self.layout.addWidget(self.money_label)
+        self.pot_label = QLabel()
 
-        self.setLayout(self.layout)
+        self.refresh_view()
 
-    def refresh_pot_money(self) :
-        self.money_label.setText(f"Pot: {self.pot.get_value()}")
+        layout.addWidget(self.cardView)
+        layout.addWidget(self.pot_label)
+
+        self.setLayout(layout)
+
+    def refresh_view(self):
+        self.pot_label.setText(f"Pot: {self.pot.get_value()}")
+
+        card_imgs = []
+        cards_open = [0, 3, 4, 5, 5]
+
+        for i, amount in enumerate(cards_open):
+            if i == self.game.round_number:
+                for card_index in range(0, cards_open[i]):
+                    graphic_key = (self.game.tableCards[card_index].get_value(), self.game.tableCards[card_index].get_suit())
+                    card_imgs.append(self.all_card_imgs[graphic_key])
+                for card_index in range(cards_open[i], 5):
+                    card_imgs.append(self.all_card_imgs["back"])
+                break
+
+        self.cardView.change_cards(card_imgs)
 
 
 class PlayerView(QWidget):
@@ -250,7 +176,7 @@ class PlayerView(QWidget):
     class PlayerView: View of one player
     """
 
-    def __init__(self, player) :
+    def __init__(self, player, all_card_imgs):
         """
         inits the view for one player
         @param player: the player for whicht the view will be initialised
@@ -258,10 +184,12 @@ class PlayerView(QWidget):
         super().__init__()
 
         self.player = player
+        self.all_card_imgs = all_card_imgs
+        layout = QVBoxLayout()
 
-        self.layout = QVBoxLayout()
+        self.cardView = CardView()
 
-        self.name_label = QLabel(f"{self.player.name}")
+        name_label = QLabel(f"{self.player.name}")
         self.money_label = QLabel()
         self.bet_label = QLabel()
         self.activeText = QLabel("active")
@@ -269,104 +197,110 @@ class PlayerView(QWidget):
 
         self.refresh_view()
 
-        self.layout.addWidget(self.name_label)
-        self.layout.addWidget(self.money_label)
-        self.layout.addWidget(self.bet_label)
-        self.layout.addWidget(self.activeText)
+        layout.addWidget(self.cardView)
+        layout.addWidget(name_label)
+        layout.addWidget(self.money_label)
+        layout.addWidget(self.bet_label)
+        layout.addWidget(self.activeText)
 
-        self.setLayout(self.layout)
+        self.setLayout(layout)
 
-    def refresh_view(self) :
+    def refresh_view(self):
         self.money_label.setText(f"Money: {self.player.money}")
         self.bet_label.setText(f"Bet: {self.player.bet}")
 
         # check active_state
-        if self.player.active_state :
+        if self.player.active_state:
             self.activeText.show()
-        else :
+        else:
             self.activeText.hide()
 
+        # refresh card graphics
+        card_imgs = []
+        if self.player.active_state:
+            for handCard in self.player.handCards:
+                graphic_key = (handCard.get_value(), handCard.get_suit())
+                card_imgs.append(self.all_card_imgs[graphic_key])
+        else:
+            for i in range(len(self.player.handCards)):
+                card_imgs.append(self.all_card_imgs["back"])
+
+        self.cardView.change_cards(card_imgs)
+
+
+def read_cards():
+    all_cards = dict()  # Dictionaries let us have convenient mappings between cards and their images
+
+    for suit in cardlib.Suit:  # You'll need to map your suits to the filenames here. You are expected to change this!
+        for value_file, value in zip(['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'], range(2, 15)):
+            file = value_file + suit.name[0]
+            key = (value, suit)  # I'm choosing this tuple to be the key for this dictionary
+
+            all_cards["back"] = QSvgRenderer('cards/Red_Back_2.svg')
+            all_cards[key] = QSvgRenderer('cards/' + file + '.svg')
+
+    return all_cards
 
 class PokerView:
     """
     class PokerView: View to aggregate all other views and connect all signals and messages
     """
 
-    def __init__(self, game: Game) :
+    def __init__(self, game: Game):
         """
         aggregates all other views together and connects the views to the game logic
         @param game: the logic behind everything
         """
         self.game = game
 
+        all_card_imgs = read_cards()
+
         self.window = Window()
-        self.potView = PotView(self.game.pot)
-        self.buttonsView = ButtonsView()
-        self.playerView1 = PlayerView(self.game.player1)
-        self.playerView2 = PlayerView(self.game.player2)
-        self.cardView_player1 = CardView(self.game.player1.handCards)
-        self.cardView_player2 = CardView(self.game.player2.handCards)
-        self.cardView_table = CardView(self.game.tableCards)
+        tableView = TableView(self.game, self.game.pot, all_card_imgs)
+        buttonsView = ButtonsView()
+        playerViews = []
+        for player in self.game.players:
+            playerViews.append(PlayerView(player, all_card_imgs))
 
-        self.window.add_view(self.potView, 1, 1)
-        self.window.add_view(self.buttonsView, 3, 1)
-        self.window.add_view(self.playerView1, 1, 0)
-        self.window.add_view(self.playerView2, 1, 2)
-        self.window.add_view(self.cardView_player1, 0, 0)
-        self.window.add_view(self.cardView_player2, 0, 2)
-        self.window.add_view(self.cardView_table, 0, 1)
 
-        self.cardView_player1.open_player_cards()
-        self.buttonsView.set_next_button_disabled()
+        self.window.add_view(tableView, 0, 1)
+        self.window.add_view(buttonsView, 3, 1)
 
-        # connect signal
-        self.buttonsView.raiseButton.clicked.connect(lambda : self.game.raise_(self.buttonsView.raise_input.text()))
-        self.buttonsView.callButton.clicked.connect(self.game.call_)
-        self.buttonsView.checkButton.clicked.connect(self.game.check_)
-        self.buttonsView.foldButton.clicked.connect(self.game.fold_)
-        self.buttonsView.next_button.clicked.connect(self.game.next_match)
+        position_player_views = [0, 2]
+        for i, pos in enumerate(position_player_views):
+            self.window.add_view(playerViews[i], 0, pos)
 
-        self.game.refresh_players_view.connect(self.playerView1.refresh_view)
-        self.game.refresh_players_view.connect(self.playerView2.refresh_view)
+        buttonsView.set_next_button_disabled()
 
-        self.game.show_player1_cards.connect(self.cardView_player1.open_player_cards)
-        self.game.cover_player1_cards.connect(self.cardView_player1.cover_player_cards)
+        # connect signal #muss in die classen geschrieben werden**
+        buttonsView.raiseButton.clicked.connect(lambda: self.game.raise_(buttonsView.raise_input.text()))
+        buttonsView.callButton.clicked.connect(self.game.call_)
+        buttonsView.checkButton.clicked.connect(self.game.check_)
+        buttonsView.foldButton.clicked.connect(self.game.fold_)
+        buttonsView.next_button.clicked.connect(self.game.next_match)
 
-        self.game.show_player2_cards.connect(self.cardView_player2.open_player_cards)
-        self.game.cover_player2_cards.connect(self.cardView_player2.cover_player_cards)
+        for playerView in playerViews:#muss in class connected werden**
+            self.game.refresh_player_view.connect(playerView.refresh_view)
 
-        self.game.refresh_card_view.connect(self.cardView_player1.refresh_view)
-        self.game.refresh_card_view.connect(self.cardView_player2.refresh_view)
-        self.game.refresh_card_view.connect(self.cardView_table.refresh_view)
+        self.game.refresh_table_view.connect(tableView.refresh_view) #muss in class connected werden**
 
-        self.game.cover_tablecards.connect(self.cardView_table.cover_table_cards)
-        self.game.show_first3_cards.connect(self.cardView_table.show_first3_table_cards)
-        self.game.show_fourth_card.connect(self.cardView_table.show_fourth_card)
-        self.game.show_fifth_card.connect(self.cardView_table.show_fifth_card)
+        self.game.enable_next_button.connect(buttonsView.set_next_button_active)#enable,disable button nicht speziel für next sondern generell, werden auch in class connectet**
+        self.game.disable_next_button.connect(buttonsView.set_next_button_disabled)
 
-        self.game.refresh_pot_view.connect(self.potView.refresh_pot_money)
-
-        self.game.enable_next_button.connect(self.buttonsView.set_next_button_active)
-        self.game.disable_next_button.connect(self.buttonsView.set_next_button_disabled)
-
-        self.game.enable_buttons.connect(self.buttonsView.set_buttons_active)
-        self.game.disable_buttons.connect(self.buttonsView.set_buttons_disabled)
-
-        self.game.change_cards.connect(lambda : self.cardView_player1.change_cards(self.game.player1.handCards))
-        self.game.change_cards.connect(lambda : self.cardView_player2.change_cards(self.game.player2.handCards))
-        self.game.change_cards.connect(lambda : self.cardView_table.change_cards(self.game.tableCards))
+        self.game.enable_buttons.connect(buttonsView.set_buttons_active)
+        self.game.disable_buttons.connect(buttonsView.set_buttons_disabled)
 
         # messages
-        self.msg = QMessageBox()
+        self.msg = QMessageBox() #ein msg signal mit übergabe des txt**
 
         self.game.trigger_tie_message.connect(self.show_tie_message)
         self.game.trigger_game_winner_message.connect(
-            lambda : self.show_game_winner_message(self.game.get_winner().name))
+            lambda: self.show_game_winner_message(self.game.get_winner().name))
         self.game.trigger_fold_winner_message.connect(
-            lambda : self.show_fold_win_message(self.game.get_winner().name, \
+            lambda: self.show_fold_win_message(self.game.get_winner().name, \
                                                 self.game.pot.get_value()))
         self.game.trigger_match_winner_message.connect(
-            lambda : self.show_match_winner_message(self.game.get_winner().name, \
+            lambda: self.show_match_winner_message(self.game.get_winner().name, \
                                                     self.game.pot.get_value(), \
                                                     self.game.get_winning_handtype()))
         self.game.raise_error_msg.connect(self.show_raise_error_message)
