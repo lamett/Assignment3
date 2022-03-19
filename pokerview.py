@@ -218,6 +218,8 @@ class PlayerView(QWidget):
 
         self.setLayout(layout)
 
+        self.player.refresh_player_view.connect(self.refresh_view)
+
     def refresh_view(self):
         self.money_label.setText(f"Money: {self.player.money}")
         self.bet_label.setText(f"Bet: {self.player.bet}")
@@ -239,7 +241,6 @@ class PlayerView(QWidget):
                 card_imgs.append(self.all_card_imgs["back"])
 
         self.cardView.change_cards(card_imgs)
-
 
 def read_cards():
     all_cards = dict()  # Dictionaries let us have convenient mappings between cards and their images
@@ -292,8 +293,6 @@ class PokerView:
         buttonsView.foldButton.clicked.connect(self.game.fold_)
         buttonsView.next_button.clicked.connect(self.game.next_match)
 
-        for playerView in playerViews:#muss in class connected werden**
-            self.game.refresh_player_view.connect(playerView.refresh_view)
 
         # messages
         self.msg = QMessageBox() #ein msg signal mit übergabe des txt**

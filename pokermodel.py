@@ -17,6 +17,7 @@ class Player(QObject):
     """
         Class Player: represents a Player with his attributes and methods to change them
     """
+    refresh_player_view = pyqtSignal()
 
     def __init__(self, name, money, bet, hand, active_state: bool):
         """
@@ -29,6 +30,7 @@ class Player(QObject):
         """
 
         super().__init__()
+
         self.name = name
         self.money = money
         self.bet = bet
@@ -58,7 +60,6 @@ class Game(QObject):
     """
 
     # Refresh signals to refresh the views
-    refresh_player_view = pyqtSignal()#in zugehörigen klassen definieren**
     refresh_table_view = pyqtSignal()
 
     #sends errors and game states like winning messages
@@ -151,7 +152,7 @@ class Game(QObject):
             player.decrease_money(player.bet)
             player.reset_bet()
 
-        self.refresh_player_view.emit()
+        for player in self.players: player.refresh_player_view.emit()
 
         if self.round_number == 1:
             self.refresh_table_view.emit()
@@ -167,7 +168,7 @@ class Game(QObject):
             for player in self.players:
                 player.active_state = True
 
-            self.refresh_player_view.emit()
+            for player in self.players: player.refresh_player_view.emit()
 
             self.winner = self.compare_pokerhands()
 
@@ -181,7 +182,7 @@ class Game(QObject):
 
                 self.game_state_message.emit("tie")
 
-            self.refresh_player_view.emit()
+            for player in self.players: player.refresh_player_view.emit()
 
             self.change_button_state.emit("enable_next_button")
             self.change_button_state.emit("disable_buttons")
@@ -210,7 +211,7 @@ class Game(QObject):
             self.players[0].active_state = True #könnte man noch eleganter lösen aber ist glaube egal
             self.players[1].active_state = False
 
-            self.refresh_player_view.emit()
+            for player in self.players: player.refresh_player_view.emit()
 
     # active_player_handling
     def set_next_player_active(self):
@@ -226,7 +227,7 @@ class Game(QObject):
                     self.players[0].active_state = True
                 break
 
-        self.refresh_player_view.emit()
+        for player in self.players: player.refresh_player_view.emit()
 
     def get_active_player(self):
 
@@ -308,14 +309,14 @@ class Game(QObject):
             player.decrease_money(player.bet)
             player.reset_bet()
 
-        self.refresh_player_view.emit()
+        for player in self.players: player.refresh_player_view.emit()
         self.refresh_table_view.emit()
 
         self.winner = self.get_not_active_player()
         self.winner.increase_money(self.pot.value)
         self.game_state_message.emit("fold_winner")
 
-        self.refresh_player_view.emit()
+        for player in self.players: player.refresh_player_view.emit()
 
         self.change_button_state.emit("enable_next_button")
         self.change_button_state.emit("disable_buttons")
