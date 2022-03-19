@@ -69,12 +69,12 @@ class ButtonsView(QWidget):
     Class ButtonView: class for all the different buttons(raise, call, check, fold, amount to raise and next
     """
 
-    def __init__(self):
+    def __init__(self,game):
         """
         inits all the Layouts and buttons and sets everything to our mainWIdget
         """
         super().__init__()
-
+        self.game = game
         self.widget_h1 = QWidget()
         self.widget_h2 = QWidget()
 
@@ -109,6 +109,18 @@ class ButtonsView(QWidget):
         self.layout_v.addWidget(self.widget_h2)
 
         self.setLayout(self.layout_v)
+
+        self.game.change_button_state.connect(lambda x: self.change_button_state(x))
+
+    def change_button_state(self, state):
+        if(state == "enable_next_button"):
+            self.set_next_button_active()
+        elif(state == "disable_next_button"):
+            self.set_next_button_disabled()
+        elif(state == "enable_buttons"):
+            self.set_buttons_active()
+        elif(state == "disable_buttons"):
+            self.set_buttons_disabled()
 
     def set_next_button_active(self) :# alles zu einer funktion mergen**
         QPushButton.setDisabled(self.next_button, False)
@@ -257,7 +269,7 @@ class PokerView:
 
         self.window = Window()
         tableView = TableView(self.game, self.game.pot, all_card_imgs)
-        buttonsView = ButtonsView()
+        buttonsView = ButtonsView(self.game)
         playerViews = []
         for player in self.game.players:
             playerViews.append(PlayerView(player, all_card_imgs))
@@ -284,18 +296,14 @@ class PokerView:
 
         self.game.refresh_table_view.connect(tableView.refresh_view) #muss in class connected werden**
 
-        self.game.enable_next_button.connect(buttonsView.set_next_button_active)#enable,disable button nicht speziel für next sondern generell, werden auch in class connectet**
-        self.game.disable_next_button.connect(buttonsView.set_next_button_disabled)
 
-        self.game.enable_buttons.connect(buttonsView.set_buttons_active)
-        self.game.disable_buttons.connect(buttonsView.set_buttons_disabled)
 
         # messages
         self.msg = QMessageBox() #ein msg signal mit übergabe des txt**
 
         self.game.game_state_message.connect(lambda x: self.show_message(x))
 
-    
+
     def show_message(self, message):
         if(message == "raise_error"):
             self.show_raise_error_message()

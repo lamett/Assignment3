@@ -64,14 +64,8 @@ class Game(QObject):
     #sends errors and game states like winning messages
     game_state_message = pyqtSignal(str)
 
-    # Signals to enable/disable button for the next round
-    enable_next_button = pyqtSignal()#ein signal für enable/disable: wenn enabled setzt disabled, wenn disabled setzt enabled**
-    disable_next_button = pyqtSignal()
-
-    # Signals to enable/disable buttons
-    enable_buttons = pyqtSignal()#ein signal für alle enable und disable events**
-    disable_buttons = pyqtSignal()
-
+    #signals for buttons
+    change_button_state = pyqtSignal(str)
 
     def __init__(self):
 
@@ -189,16 +183,16 @@ class Game(QObject):
 
             self.refresh_player_view.emit()
 
-            self.enable_next_button.emit()
-            self.disable_buttons.emit()
+            self.change_button_state.emit("enable_next_button")
+            self.change_button_state.emit("disable_buttons")
 
     def next_match(self):
         """
         starts a new match if the actual round has ended and there isnt a game_winner
         """
         if not self.check_winner():
-            self.disable_next_button.emit()
-            self.enable_buttons.emit()
+            self.change_button_state.emit("disable_next_button")
+            self.change_button_state.emit("enable_buttons")
             self.match_number += 1
             self.reset_round_number()
             self.reset_check_count()
@@ -323,8 +317,8 @@ class Game(QObject):
 
         self.refresh_player_view.emit()
 
-        self.enable_next_button.emit()
-        self.disable_buttons.emit()
+        self.change_button_state.emit("enable_next_button")
+        self.change_button_state.emit("disable_buttons")
 
     def compare_pokerhands(self):
         """
