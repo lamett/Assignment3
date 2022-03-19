@@ -164,6 +164,7 @@ class TableView(QWidget):
         layout.addWidget(self.pot_label)
 
         self.setLayout(layout)
+        self.game.refresh_table_view.connect(self.refresh_view)
 
     def refresh_view(self):
         self.pot_label.setText(f"Pot: {self.pot.get_value()}")
@@ -293,10 +294,6 @@ class PokerView:
 
         for playerView in playerViews:#muss in class connected werden**
             self.game.refresh_player_view.connect(playerView.refresh_view)
-
-        self.game.refresh_table_view.connect(tableView.refresh_view) #muss in class connected werden**
-
-
 
         # messages
         self.msg = QMessageBox() #ein msg signal mit übergabe des txt**
