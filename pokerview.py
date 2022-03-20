@@ -30,7 +30,7 @@ class Window(QGroupBox):
     def add_view(self, widget, column, row):
         self.layout.addWidget(widget, column, row)
 
-
+#cards
 class CardItem(QGraphicsSvgItem):
     """
     Class CardItem: A simple overloaded QGraphicsSvgItem that also stores the card position and the state_open
@@ -40,7 +40,6 @@ class CardItem(QGraphicsSvgItem):
         super().__init__()
         self.setSharedRenderer(card_img)
         self.position = position
-
 
 class CardView(QGraphicsView):
     """
@@ -55,6 +54,7 @@ class CardView(QGraphicsView):
 
     def change_cards(self, card_imgs):
         cardItem_list = []
+        self.scene.clear()
         for pos, card_img in enumerate(card_imgs):
                 cardItem_list.append(CardItem(card_img, pos))
 
@@ -62,88 +62,95 @@ class CardView(QGraphicsView):
             cardItem.setPos(cardItem.position * 125, 0)
             self.scene.addItem(cardItem)
 
-
 # buttons
 class ButtonsView(QWidget):
     """
     Class ButtonView: class for all the different buttons(raise, call, check, fold, amount to raise and next
     """
 
-    def __init__(self,game):
+    def __init__(self, game):
         """
         inits all the Layouts and buttons and sets everything to our mainWIdget
         """
         super().__init__()
-        self.game = game
-        self.widget_h1 = QWidget()
-        self.widget_h2 = QWidget()
 
-        self.layout_v = QVBoxLayout()
-        self.layout_h1 = QHBoxLayout()
-        self.layout_h2 = QHBoxLayout()
-
+        # define buttons
         self.raiseButton = QPushButton("RAISE")
         self.callButton = QPushButton("CALL")
         self.checkButton = QPushButton("CHECK")
         self.foldButton = QPushButton("FOLD")
-
-        self.raise_amount_text = QLabel("Amount to raise:")
-        self.raise_input = QLineEdit("0")
-        self.space_label = QLabel()
         self.next_button = QPushButton("NEXT")
 
-        self.layout_h1.addWidget(self.raiseButton, 2)
-        self.layout_h1.addWidget(self.callButton, 2)
-        self.layout_h1.addWidget(self.checkButton, 2)
-        self.layout_h1.addWidget(self.foldButton, 2)
+        raise_amount_text = QLabel("Amount to raise:")
+        self.raise_input = QLineEdit("0")
+        space_label = QLabel()
 
-        self.layout_h2.addWidget(self.raise_amount_text)
-        self.layout_h2.addWidget(self.raise_input)
-        self.layout_h2.addWidget(self.space_label, 1)
-        self.layout_h2.addWidget(self.next_button)
+        #connect buttons
+        self.raiseButton.clicked.connect(lambda: game.raise_(self.raise_input.text()))
+        self.callButton.clicked.connect(game.call_)
+        self.checkButton.clicked.connect(game.check_)
+        self.foldButton.clicked.connect(game.fold_)
+        self.next_button.clicked.connect(game.next_match)
 
-        self.widget_h1.setLayout(self.layout_h1)
-        self.widget_h2.setLayout(self.layout_h2)
+        # layout widgets
+        widget_h1 = QWidget()
+        widget_h2 = QWidget()
 
-        self.layout_v.addWidget(self.widget_h1)
-        self.layout_v.addWidget(self.widget_h2)
+        layout_v = QVBoxLayout()
+        layout_h1 = QHBoxLayout()
+        layout_h2 = QHBoxLayout()
 
-        self.setLayout(self.layout_v)
+        layout_h1.addWidget(self.raiseButton, 2)
+        layout_h1.addWidget(self.callButton, 2)
+        layout_h1.addWidget(self.checkButton, 2)
+        layout_h1.addWidget(self.foldButton, 2)
 
-        self.game.change_button_state.connect(lambda x: self.change_button_state(x))
+        layout_h2.addWidget(raise_amount_text)
+        layout_h2.addWidget(self.raise_input)
+        layout_h2.addWidget(space_label, 1)
+        layout_h2.addWidget(self.next_button)
+
+        widget_h1.setLayout(layout_h1)
+        widget_h2.setLayout(layout_h2)
+
+        layout_v.addWidget(widget_h1)
+        layout_v.addWidget(widget_h2)
+
+        self.setLayout(layout_v)
+
+        #connect signal
+        game.change_button_state.connect(lambda x: self.change_button_state(x))
 
     def change_button_state(self, state):
         if(state == "enable_next_button"):
             self.set_next_button_active()
+            self.set_buttons_disabled()
         elif(state == "disable_next_button"):
             self.set_next_button_disabled()
-        elif(state == "enable_buttons"):
             self.set_buttons_active()
-        elif(state == "disable_buttons"):
-            self.set_buttons_disabled()
 
-    def set_next_button_active(self) :# alles zu einer funktion mergen**
+    def set_next_button_active(self):
         QPushButton.setDisabled(self.next_button, False)
 
-    def set_next_button_disabled(self) :
+    def set_next_button_disabled(self):
         QPushButton.setDisabled(self.next_button, True)
 
-    def set_buttons_active(self) :
+    def set_buttons_active(self):
         QPushButton.setDisabled(self.raiseButton, False)
         QPushButton.setDisabled(self.callButton, False)
         QPushButton.setDisabled(self.checkButton, False)
         QPushButton.setDisabled(self.foldButton, False)
 
-    def set_buttons_disabled(self) :
+    def set_buttons_disabled(self):
         QPushButton.setDisabled(self.raiseButton, True)
         QPushButton.setDisabled(self.callButton, True)
         QPushButton.setDisabled(self.checkButton, True)
         QPushButton.setDisabled(self.foldButton, True)
 
-
+# middle of the table
 class TableView(QWidget):
     """
-    class TableView: View of middle table
+    class TableView: View of table cards and the pot
     """
 
     def __init__(self, game, pot, all_card_imgs):
@@ -183,7 +190,7 @@ class TableView(QWidget):
 
         self.cardView.change_cards(card_imgs)
 
-
+#player
 class PlayerView(QWidget):
     """
     class PlayerView: View of one player
@@ -255,6 +262,7 @@ def read_cards():
 
     return all_cards
 
+#game
 class PokerView:
     """
     class PokerView: View to aggregate all other views and connect all signals and messages
@@ -267,15 +275,16 @@ class PokerView:
         """
         self.game = game
 
+        # render cards
         all_card_imgs = read_cards()
 
+        # layout views
         self.window = Window()
         tableView = TableView(self.game, self.game.pot, all_card_imgs)
         buttonsView = ButtonsView(self.game)
         playerViews = []
         for player in self.game.players:
             playerViews.append(PlayerView(player, all_card_imgs))
-
 
         self.window.add_view(tableView, 0, 1)
         self.window.add_view(buttonsView, 3, 1)
@@ -286,24 +295,14 @@ class PokerView:
 
         buttonsView.set_next_button_disabled()
 
-        # connect signal #muss in die classen geschrieben werden**
-        buttonsView.raiseButton.clicked.connect(lambda: self.game.raise_(buttonsView.raise_input.text()))
-        buttonsView.callButton.clicked.connect(self.game.call_)
-        buttonsView.checkButton.clicked.connect(self.game.check_)
-        buttonsView.foldButton.clicked.connect(self.game.fold_)
-        buttonsView.next_button.clicked.connect(self.game.next_match)
-
-
-        # messages
-        self.msg = QMessageBox() #ein msg signal mit übergabe des txt**
-
+        # message
+        self.msg = QMessageBox()
         self.game.game_state_message.connect(lambda x: self.show_message(x))
-
 
     def show_message(self, message):
         if(message == "raise_error"):
             self.show_raise_error_message()
-        elif(message == "show_check_error"):
+        elif(message == "check_error"):
             self.show_check_error_message()
         elif(message == "tie"):
             self.show_tie_message()
@@ -314,32 +313,31 @@ class PokerView:
         elif(message == "match_winner"):
             self.show_match_winner_message(self.game.get_winner().name,self.game.pot.get_value(),self.game.get_winning_handtype())
 
-
-    def show_raise_error_message(self) :
+    def show_raise_error_message(self):
         self.msg.setWindowTitle("Raise_Error")
         self.msg.setText("You don't have enough money")
         self.msg.setBaseSize(QSize(100, 100))
         self.msg.exec()
 
-    def show_check_error_message(self) :
+    def show_check_error_message(self):
         self.msg.setWindowTitle("Check_Error")
         self.msg.setText("Your bet have to be higher or equal to the others")
         self.msg.setBaseSize(QSize(100, 100))
         self.msg.exec()
 
-    def show_tie_message(self) :
+    def show_tie_message(self):
         self.msg.setWindowTitle("Match Over")
         self.msg.setText(f"It's a tie!")
         self.msg.setBaseSize(QSize(100, 100))
         self.msg.exec()
 
-    def show_game_winner_message(self, name) :
+    def show_game_winner_message(self, name):
         self.msg.setWindowTitle("Game Over")
         self.msg.setText(f"{name} wins the game!")
         self.msg.setBaseSize(QSize(100, 100))
         self.msg.exec()
 
-    def show_fold_win_message(self, name, pot_value) :
+    def show_fold_win_message(self, name, pot_value):
         self.msg.setWindowTitle("Match Over")
         self.msg.setText(f"A Player folded their cards. {name} wins {pot_value}!")
         self.msg.setBaseSize(QSize(100, 100))
